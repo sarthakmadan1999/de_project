@@ -11,12 +11,6 @@ sys.path.append(BASE_DIR)
 
 logger = get_logger(__name__, log_file="logs/gold_layer.log")
 
-os.environ["HADOOP_HOME"] = "D:\\hadoop"
-os.environ["PATH"] = os.environ["PATH"] + ";D:\\hadoop\\bin"
-
-# SILVER_PATH = "D:/de_project/data/processed/aircraft_processed_delta/"
-# GOLD_PATH = "D:/de_project/data/gold/aircraft_gold/"
-# CONFIG_PATH = "D:/de_project/data/run_config.json"
 
 def load_config():
     with open(os.path.join(BASE_DIR, "config.yaml"), "r") as f:
@@ -24,9 +18,9 @@ def load_config():
 
 def config_value():
     config_val = load_config()
-    GOLD_PATH = config_val['local']['gold_path']
-    CONFIG_PATH = config_val['local']['config_path']
-    SILVER_PATH = config_val['local']['delta_path']
+    GOLD_PATH = config_val['databricks']['gold_path']
+    CONFIG_PATH = config_val['databricks']['config_path']
+    SILVER_PATH = config_val['databricks']['delta_path']
     return GOLD_PATH, CONFIG_PATH, SILVER_PATH
 
 # ---------------------------------------

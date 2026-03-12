@@ -10,17 +10,14 @@ sys.path.append(BASE_DIR)
 
 logger = get_logger(__name__, log_file="logs/fetch_api_data.log")
 
-# RAW_DATA_PATH = "D:/de_project/data/raw/"
-# CONFIG_PATH = "D:/de_project/data/run_config.json"
-
 def load_config():
     with open(os.path.join(BASE_DIR, "config.yaml"), "r") as f:
         return yaml.safe_load(f)
 
 def config_value():
     config_val = load_config()
-    RAW_DATA_PATH = config_val['local']['raw_data_path']
-    CONFIG_PATH = config_val['local']['config_path']
+    RAW_DATA_PATH = config_val['databricks']['raw_data_path']
+    CONFIG_PATH = config_val['databricks']['config_path']
     url = config_val['shared']['api_url']
     return RAW_DATA_PATH, CONFIG_PATH, url
 

@@ -16,12 +16,7 @@ logger = get_logger(__name__, log_file="logs/transform_data_silver.log")
 # ---------------------------------------
 # Fix Hadoop on Windows
 # ---------------------------------------
-os.environ["HADOOP_HOME"] = "D:\\hadoop"
-os.environ["PATH"] = os.environ["PATH"] + ";D:\\hadoop\\bin"
 
-# PROCESSED_DATA_PATH = "data/processed"
-# BAD_DATA_PATH = "logs/bad_records/"
-# CONFIG_PATH = "D:/de_project/data/run_config.json"
 
 def load_config():
     with open(os.path.join(BASE_DIR, "config.yaml"), "r") as f:
@@ -29,9 +24,9 @@ def load_config():
 
 def config_value():
     config_val = load_config()
-    PROCESSED_DATA_PATH = config_val['local']['delta_path']
-    CONFIG_PATH = config_val['local']['config_path']
-    BAD_DATA_PATH = config_val['local']['bad_data_path']
+    PROCESSED_DATA_PATH = config_val['databricks']['delta_path']
+    CONFIG_PATH = config_val['databricks']['config_path']
+    BAD_DATA_PATH = config_val['databricks']['bad_data_path']
     return PROCESSED_DATA_PATH, CONFIG_PATH, BAD_DATA_PATH
 
 # ---------------------------------------
