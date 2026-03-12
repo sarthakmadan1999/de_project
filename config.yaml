@@ -1,0 +1,34 @@
+# ================================================
+# config.yaml
+# Central configuration for Flight Data Pipeline
+# ================================================
+
+# ================================================
+# config.yaml
+# Central configuration for Flight Data Pipeline
+# ================================================
+
+local:
+  base_path: "D:/de_project"
+  raw_data_path: "D:/de_project/data/raw/"
+  delta_path: "D:/de_project/data/processed/aircraft_silver/"
+  gold_path: "D:/de_project/data/gold/aircraft_gold/"
+  config_path: "D:/de_project/data/run_config.json"
+  bad_data_path: "D:/de_project/logs/bad_records/"
+  hadoop_home: "D:\\hadoop"
+  hadoop_bin: "D:\\hadoop\\bin"
+
+databricks:
+  base_path: "abfss://container@yourstorage.dfs.core.windows.net"
+  raw_data_path: "abfss://bronze@yourstorage.dfs.core.windows.net/raw/"
+  delta_path: "abfss://silver@yourstorage.dfs.core.windows.net/aircraft_silver/"
+  gold_path: "abfss://gold@yourstorage.dfs.core.windows.net/aircraft_gold/"
+  config_path: "abfss://bronze@yourstorage.dfs.core.windows.net/run_config.json"
+  bad_data_path: "abfss://silver@yourstorage.dfs.core.windows.net/bad_records/"
+
+shared:
+  api_url: "https://opensky-network.org/api/states/all"
+  api_timeout: 30
+  min_record_threshold: 5000
+  inactive_threshold_seconds: 10800
+  expired_threshold_seconds: 21600
