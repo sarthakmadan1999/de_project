@@ -1,0 +1,32 @@
+# Data
+data/
+
+# Logs
+logs/
+
+# Spark warehouse
+spark-warehouse/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+*.env
+
+# Delta Lake
+_delta_log/
+
+# Scratch/test files
+delta_try.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
