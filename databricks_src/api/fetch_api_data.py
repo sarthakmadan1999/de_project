@@ -1,28 +1,32 @@
 import requests
 import json
 import os
-import sys
-from datetime import datetime
-from src.utils.logger import get_logger
 import yaml
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.append(BASE_DIR)
+from datetime import datetime
+from databricks_src.utils.logger import get_logger
 
-logger = get_logger(__name__, log_file="logs/fetch_api_data.log")
+# ---------------------------------------
+# Config
+# ---------------------------------------
+WORKSPACE_PATH = os.environ.get("WORKSPACE_PATH")
 
 def load_config():
-    with open(os.path.join(BASE_DIR, "config.yaml"), "r") as f:
+    with open(f"{WORKSPACE_PATH}/config.yaml", "r") as f:
         return yaml.safe_load(f)
 
 def config_value():
     config_val = load_config()
     RAW_DATA_PATH = config_val['databricks']['raw_data_path']
-    CONFIG_PATH = config_val['databricks']['config_path']
-    url = config_val['shared']['api_url']
-    return RAW_DATA_PATH, CONFIG_PATH, url
+    CONFIG_PATH   = config_val['databricks']['config_path']
+    LOG_PATH      = config_val['databricks']['bronze_log']
+    url           = config_val['shared']['api_url']
+    return RAW_DATA_PATH, CONFIG_PATH, LOG_PATH, url
 
 
-def fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url):
+# ---------------------------------------
+# Fetch Aircraft Data
+# ---------------------------------------
+def fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url, logger):
 
     logger.info("Fetching aircraft data from OpenSky API...")
 
@@ -31,53 +35,47 @@ def fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url):
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         logger.error(f"API call failed: {str(e)}")
-        sys.exit(1)
+        raise Exception(f"API call failed: {str(e)}")
 
-    data = response.json()
-
-    # Extract only the states list
+    data   = response.json()
     states = data.get("states", [])
-    record_count = len(states)
-    logger.info(f"Total records fetched: {record_count}")
+    logger.info(f"Total records fetched: {len(states)}")
 
-    # Validate record count before saving
-    if record_count == 0:
+    if len(states) == 0:
         logger.error("No records fetched from API. Aborting.")
-        sys.exit(1)
-    if record_count < 1000:
-        logger.error(f"Record count too low ({record_count}). Expected at least 1000. Aborting ingestion.")
-        sys.exit(1)
-    # Create raw folder if it doesn't exist
-    os.makedirs(RAW_DATA_PATH, exist_ok=True)
-    logger.info(f"Ensured raw data directory exists: {RAW_DATA_PATH}")
+        raise Exception("No records fetched from API. Aborting.")
+
+    if len(states) < 1000:
+        logger.error(f"Record count too low ({len(states)}). Aborting.")
+        raise Exception(f"Record count too low ({len(states)}). Aborting.")
 
     # Generate timestamp
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
-    # Save raw JSON file with timestamp
     file_name = f"aircraft_data_{timestamp}.json"
-    file_path = os.path.join(RAW_DATA_PATH, file_name)
+    file_path = f"{RAW_DATA_PATH}{file_name}"
 
-    with open(file_path, "w") as f:
-        json.dump(states, f, indent=4)
+    # Write JSON to ADLS
+    dbutils.fs.put(file_path, json.dumps(states, indent=4), overwrite=True)
+    logger.info(f"Data saved to ADLS: {file_path}")
 
-    logger.info(f"Data saved successfully: {file_path}")
-
-    # Save shared run config for Silver layer to consume
-    config = {
+    # Write run_config to ADLS
+    run_config = {
         "run_timestamp": timestamp,
         "raw_file_path": file_path,
         "total_records": len(states)
     }
-
-    with open(CONFIG_PATH, "w") as f:
-        json.dump(config, f, indent=4)
-
+    dbutils.fs.put(CONFIG_PATH, json.dumps(run_config, indent=4), overwrite=True)
     logger.info(f"Run config saved: {CONFIG_PATH}")
 
     return file_path
 
 
-if __name__ == "__main__":
-    RAW_DATA_PATH, CONFIG_PATH, url = config_value()
-    fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url)
+# ---------------------------------------
+# Main
+# ---------------------------------------
+def main():
+    RAW_DATA_PATH, CONFIG_PATH, LOG_PATH, url = config_value()
+    logger = get_logger(__name__, LOG_PATH)
+    fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url, logger)
+
+main()

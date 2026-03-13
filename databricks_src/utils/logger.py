@@ -1,44 +1,33 @@
 import logging
-import sys
-from pathlib import Path
 
-def get_logger(name: str, log_file: str = None, level: int = logging.INFO) -> logging.Logger:
+def get_logger(name, log_path):
     """
-    Create and return a configured logger instance.
-    
-    Args:
-        name: Logger name (usually __name__)
-        log_file: Optional file path for logging
-        level: Logging level (default: INFO)
-    
-    Returns:
-        Configured logger instance
+    Logger that writes to ADLS using dbutils.
+    Each run overwrites the log file.
     """
+
+    class ADLSHandler(logging.Handler):
+        def __init__(self, log_path):
+            super().__init__()
+            self.log_path = log_path
+            self.logs = []
+
+        def emit(self, record):
+            log_entry = self.format(record)
+            self.logs.append(log_entry)
+            dbutils.fs.put(
+                self.log_path,
+                "\n".join(self.logs),
+                overwrite=True
+            )
+
     logger = logging.getLogger(name)
-    logger.setLevel(level)
-    
-    # Avoid duplicate handlers
-    if logger.handlers:
-        return logger
-    
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-    
-    # Formatter
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-    
-    # File handler (optional)
-    if log_file:
-        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(level)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-    
+    logger.setLevel(logging.INFO)
+
+    handler = ADLSHandler(log_path)
+    handler.setFormatter(logging.Formatter(
+        '[%(asctime)s] %(levelname)s - %(message)s'
+    ))
+
+    logger.addHandler(handler)
     return logger

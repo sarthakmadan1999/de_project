@@ -19,12 +19,15 @@ local:
   hadoop_bin: "D:\\hadoop\\bin"
 
 databricks:
-  base_path: "abfss://container@yourstorage.dfs.core.windows.net"
-  raw_data_path: "abfss://bronze@yourstorage.dfs.core.windows.net/raw/"
-  delta_path: "abfss://silver@yourstorage.dfs.core.windows.net/aircraft_silver/"
-  gold_path: "abfss://gold@yourstorage.dfs.core.windows.net/aircraft_gold/"
-  config_path: "abfss://bronze@yourstorage.dfs.core.windows.net/run_config.json"
-  bad_data_path: "abfss://silver@yourstorage.dfs.core.windows.net/bad_records/"
+  base_dir: "/Workspace/Users/sarthakmadan2308@gmail.com/de_project"
+  raw_data_path: "abfss://datalake@aircraftdata.dfs.core.windows.net/bronze/raw/"
+  delta_path: "abfss://datalake@aircraftdata.dfs.core.windows.net/silver/aircraft_silver/"
+  gold_path: "abfss://datalake@aircraftdata.dfs.core.windows.net/gold/aircraft_gold/"
+  config_path: "abfss://datalake@aircraftdata.dfs.core.windows.net/bronze/run_config.json"
+  bad_data_path: "abfss://datalake@aircraftdata.dfs.core.windows.net/silver/bad_records/"
+  bronze_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/fetch_api_data.log"
+  silver_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/transform_silver.log"
+  gold_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/gold_layer.log"
 
 shared:
   api_url: "https://opensky-network.org/api/states/all"
