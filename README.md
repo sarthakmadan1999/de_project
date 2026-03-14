@@ -1,61 +1,190 @@
-# de_project
-A data engineering project using Azure Databricks, Delta Lake, and ADLS Gen2  implementing medallion architecture. Includes an AI agent using MCP protocol  for natural language to SQL querying of live flight data from OpenSky Network API.
+# Flight Data Pipeline & AI Agent
 
-## Features
+An end-to-end data engineering project built on Azure implementing medallion 
+architecture with an AI-powered natural language query interface for live 
+global flight data.
 
-- **Medallion Architecture**: Implements bronze, silver, and gold layers for scalable and reliable data pipelines.
-- **Azure Databricks**: Utilizes Databricks notebooks and jobs for ETL workflows.
-- **Delta Lake**: Ensures ACID transactions and scalable metadata handling.
-- **ADLS Gen2 Integration**: Stores raw and processed data securely and efficiently.
-- **AI Agent (MCP Protocol)**: Converts natural language queries to SQL for live analytics.
-- **OpenSky Network API**: Ingests real-time flight data for analysis.
+## Architecture
+```
+OpenSky Network API (Live Flight Data ~11,000 records per call)
+           ↓
+    Bronze Layer (ADLS Gen2)
+    Raw JSON snapshots every 30 mins
+           ↓
+    Silver Layer (Delta Lake - Azure Databricks)
+    Schema validation, DQ checks,
+    status logic, merge/upsert
+           ↓
+    Gold Layer (Parquet - ADLS Gen2)
+    Analytics-ready, filtered dataset
+           ↓
+    Azure Synapse Serverless SQL
+    External table on Gold Parquet
+           ↓
+    AI Agent (Local Python + FastMCP + Groq)
+    Natural language to SQL interface
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Ingestion | Python, OpenSky Network API |
+| Storage | Azure Data Lake Storage Gen2 |
+| Processing | Azure Databricks, PySpark |
+| Data Format | Delta Lake (Silver), Parquet (Gold) |
+| Query Engine | Azure Synapse Serverless SQL |
+| Orchestration | Databricks Workflows (every 30 mins) |
+| Secret Management | Azure Key Vault |
+| AI Agent | Python, FastMCP, Groq (Llama 3.3 70B) |
+| Version Control | GitHub + Databricks Repos |
+
+## Medallion Architecture
+
+### Bronze Layer
+- Fetches live global flight data from OpenSky Network API
+- Saves raw JSON to ADLS Gen2 with timestamp
+- Runs every 30 minutes via Databricks Workflow
+- Writes run_config.json for downstream layers
+
+### Silver Layer
+- Reads raw JSON from Bronze via run_config.json
+- Schema validation and type casting
+- Data quality checks — null validation, geo coordinate validation
+- Bad records logged to ADLS
+- Flight status logic:
+  - ACTIVE — in air, recent contact
+  - LANDED — on ground flag
+  - INACTIVE — no contact more than 3 hours
+  - EXPIRED — no contact more than 6 hours
+- Source type mapping — ADS-B, ASTERIX, MLAT, FLARM
+- Delta Lake upsert/merge on icao24
+- Partitioned by origin_country
+
+### Gold Layer
+- Filters EXPIRED records
+- Selects analytics relevant columns
+- Saves as Parquet — full overwrite each run
+- Queried by Synapse and AI Agent
+
+## AI Agent
+
+- Natural language to SQL using Groq LLM (Llama 3.3 70B)
+- FastMCP protocol with two tools:
+  - get_schema — returns Gold layer schema to LLM
+  - validate_and_execute_query — validates and executes SQL on Synapse
+- SQL injection protection — blocked keywords and regex patterns
+- Connects directly to Azure Synapse Serverless
+- Runs locally via terminal
+
+### Example queries
+
+- How many flights are currently active over India?
+- Which country has the most flights right now?
+- Show me all INACTIVE flights
+- What percentage of flights use ADS-B tracking?
+- Which flights are currently descending?
 
 ## Project Structure
-
 ```
-/de_project
-│
-├── notebooks/           # Databricks notebooks for ETL and analytics
-├── src/                 # Source code for data ingestion and transformation
-├── configs/             # Configuration files
-├── ai_agent/            # MCP protocol agent for NL-to-SQL
-├── data/                # Sample datasets and schema definitions
+de_project/
+├── src/                        
+│   ├── api/
+│   │   └── fetch_api_data.py          
+│   ├── processing/
+│   │   ├── transform_data.py          
+│   │   └── gold_layer_creation.py     
+│   ├── agent/
+│   │   ├── mcp_server.py              
+│   │   └── agent.py                   
+│   └── utils/
+│       └── logger.py                  
+├── databricks_src/             
+│   ├── api/
+│   │   └── fetch_api_data.py
+│   ├── processing/
+│   │   ├── transform_data.py
+│   │   └── gold_layer_creation.py
+│   └── utils/
+│       └── logger.py
+├── config.yaml                 
+├── requirements.txt
+├── .env                        
+├── .gitignore
 └── README.md
 ```
 
-## Getting Started
+## Setup
 
-1. **Clone the repository**
-    ```bash
-    git clone https://github.com/yourusername/de_project.git
-    ```
+### Prerequisites
+- Azure subscription
+- Azure Databricks workspace
+- Azure Data Lake Storage Gen2
+- Azure Synapse Analytics
+- Azure Key Vault
+- Python 3.8+
+- Groq API key (free at console.groq.com)
 
-2. **Set up Azure Databricks and ADLS Gen2**
-    - Provision Databricks workspace and ADLS Gen2 storage.
-    - Configure secrets and mount points as needed.
+### Azure Setup
+1. Create ADLS Gen2 storage account
+2. Create Databricks workspace
+3. Create Key Vault and add ADLS access key as secret
+4. Create Databricks secret scope backed by Key Vault
+5. Configure Databricks cluster Spark config with secret scope
+6. Link GitHub repo to Databricks Repos
+7. Create Synapse workspace connected to ADLS
+8. Create external table on Gold Parquet
 
-3. **Configure the OpenSky Network API**
-    - Obtain API credentials from [OpenSky Network](https://opensky-network.org/).
-    - Update configuration files in `configs/`.
+### Local Setup
+```bash
+git clone https://github.com/sarthakmadan1999/de_project.git
+cd de_project
+pip install -r requirements.txt
+```
 
-4. **Run ETL Pipelines**
-    - Import notebooks into Databricks and execute in order: Bronze → Silver → Gold.
+Create .env file:
+```
+SYNAPSE_SERVER=de-synapse-project.sql.azuresynapse.net
+SYNAPSE_DB=flight_db
+SYNAPSE_USER=sqladminuser
+SYNAPSE_PASSWORD=your-password
+GROQ_API_KEY=your-groq-api-key
+```
 
-5. **Use the AI Agent**
-    - Start the MCP protocol agent for natural language querying.
+Run agent:
+```bash
+python -m src.agent.agent
+```
 
-## Example Query
+## Key Design Decisions
 
-> "Show me all flights flying from India"
+**Why Delta Lake for Silver?**
+ACID transactions, time travel, and upsert capability — essential for 
+handling duplicate flight records across runs without data loss.
 
-The AI agent translates this to SQL and queries the gold layer for results.
+**Why Parquet for Gold?**
+Read optimized format for Synapse Serverless — faster and cheaper 
+than Delta for analytical queries.
 
-## License
+**Why FastMCP for AI Agent?**
+MCP is an open standard for LLM tool calling — any MCP compatible 
+LLM can use the tools. More portable than custom implementations.
 
-This project is licensed under the MIT License.
+**Why separate src and databricks_src?**
+Clean separation of local and cloud environments — same business logic, 
+different runtime adapters. No code mixing.
 
-## Acknowledgments
+**Why Groq?**
+Free tier with Llama 3.3 70B — strong SQL generation capability with 
+very fast inference. Suitable for interactive NL to SQL queries.
 
-- [Azure Databricks](https://azure.microsoft.com/en-us/products/databricks/)
-- [Delta Lake](https://delta.io/)
-- [OpenSky Network](https://opensky-network.org/)
+## Background
+
+Built as a personal learning project to explore Azure data services 
+after 4 years of production experience on AWS (S3, EMR, Redshift, Glue). 
+Focus on Azure Databricks, Delta Lake, ADLS Gen2, Synapse Analytics, 
+and AI agent integration using MCP protocol.
+
+## Author
+Sarthak Madan — Data Engineer II
+GitHub: github.com/sarthakmadan1999
