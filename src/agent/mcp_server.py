@@ -29,14 +29,17 @@ Columns:
 - vertical_rate (float) — climbing/descending rate in m/s
 - time_position (string) — last position update time
 - last_contact (string) — last contact time
-- status (string) — ACTIVE, INACTIVE, LANDED
+- status (string) — AIRBORNE, INACTIVE, LANDED
 - status_reason (string) — in_air, on_ground_flag, last_contact_exceeded_3hrs
 - source_type (string) — ADS-B, ASTERIX, MLAT, FLARM, UNKNOWN
 - ingestion_time (string) — when record was ingested
 
 Rules:
 - EXPIRED records are filtered out — not present in this table
-- Status values: ACTIVE, INACTIVE, LANDED only
+- Country column is origin_country — not current location
+- Latitude and longitude are current position, not origin/destination
+- To find descending vs climbing, check vertical_rate sign
+- Status values: AIRBORNE, INACTIVE, LANDED only
 - Use SELECT only — no INSERT, UPDATE, DELETE
 """
 

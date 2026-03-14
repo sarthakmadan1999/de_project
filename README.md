@@ -9,7 +9,7 @@ global flight data.
 OpenSky Network API (Live Flight Data ~11,000 records per call)
            ↓
     Bronze Layer (ADLS Gen2)
-    Raw JSON snapshots every 30 mins
+    Raw JSON snapshots every 10 mins
            ↓
     Silver Layer (Delta Lake - Azure Databricks)
     Schema validation, DQ checks,
@@ -53,7 +53,7 @@ OpenSky Network API (Live Flight Data ~11,000 records per call)
 - Data quality checks — null validation, geo coordinate validation
 - Bad records logged to ADLS
 - Flight status logic:
-  - ACTIVE — in air, recent contact
+  - AIRBORNE — in air, recent contact
   - LANDED — on ground flag
   - INACTIVE — no contact more than 3 hours
   - EXPIRED — no contact more than 6 hours
@@ -79,11 +79,10 @@ OpenSky Network API (Live Flight Data ~11,000 records per call)
 
 ### Example queries
 
-- How many flights are currently active over India?
+- How many flights are currently airborne over India?
 - Which country has the most flights right now?
 - Show me all INACTIVE flights
 - What percentage of flights use ADS-B tracking?
-- Which flights are currently descending?
 
 ## Project Structure
 ```
