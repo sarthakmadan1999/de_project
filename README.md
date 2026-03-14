@@ -178,6 +178,9 @@ different runtime adapters. No code mixing.
 Free tier with Llama 3.3 70B — strong SQL generation capability with 
 very fast inference. Suitable for interactive NL to SQL queries.
 
+## Architecture
+![Architecture Diagram](architecture.png)
+
 ## Background
 
 Built as a personal learning project to explore Azure data services 
@@ -188,3 +191,29 @@ and AI agent integration using MCP protocol.
 ## Author
 Sarthak Madan — Data Engineer II
 GitHub: github.com/sarthakmadan1999
+
+## Future Scope
+
+- **Streaming Pipeline** — replace batch ingestion with real time 
+  streaming using Azure Event Hubs and Spark Structured Streaming
+  
+- **Terraform IaC** — infrastructure as code for reproducible 
+  Azure resource deployment
+  
+- **Power BI Dashboard** — connect Synapse to Power BI for 
+  visual flight analytics and real time maps
+  
+- **CI/CD Pipeline** — GitHub Actions to automatically test 
+  and deploy code changes to Databricks
+  
+- **Data Quality Monitoring** — Great Expectations or Azure 
+  Monitor for automated DQ alerting
+  
+- **Multi Region Support** — extend pipeline to handle 
+  regional flight data with geo partitioning
+  
+- **Vector Search** — semantic search on flight routes 
+  using embeddings for intelligent querying
+  
+- **MCP Server Deployment** — containerize MCP server 
+  using Azure Container Apps for cloud deployment
