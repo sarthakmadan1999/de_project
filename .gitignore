@@ -30,3 +30,5 @@ delta_try.py
 # OS
 .DS_Store
 Thumbs.db
+
+connection.py
