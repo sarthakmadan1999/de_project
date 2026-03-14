@@ -25,9 +25,9 @@ databricks:
   gold_path: "abfss://datalake@aircraftdata.dfs.core.windows.net/gold/aircraft_gold/"
   config_path: "abfss://datalake@aircraftdata.dfs.core.windows.net/bronze/run_config.json"
   bad_data_path: "abfss://datalake@aircraftdata.dfs.core.windows.net/silver/bad_records/"
-  bronze_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/fetch_api_data.log"
-  silver_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/transform_silver.log"
-  gold_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/gold_layer.log"
+  bronze_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/fetch_api_data"
+  silver_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/transform_silver"
+  gold_log: "abfss://datalake@aircraftdata.dfs.core.windows.net/logs/gold_layer"
 
 shared:
   api_url: "https://opensky-network.org/api/states/all"
