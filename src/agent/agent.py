@@ -3,6 +3,10 @@ import json
 from groq import Groq
 from dotenv import load_dotenv
 from src.agent.mcp_server import get_schema, validate_and_execute_query
+import sys
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(BASE_DIR)
 
 load_dotenv()
 

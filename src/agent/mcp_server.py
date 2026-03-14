@@ -3,10 +3,13 @@ import re
 import pyodbc
 from dotenv import load_dotenv
 from fastmcp import FastMCP
-
+import sys
 load_dotenv()
 
 mcp = FastMCP("Flight Data Agent")
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(BASE_DIR)
 
 # ---------------------------------------
 # Schema Context
