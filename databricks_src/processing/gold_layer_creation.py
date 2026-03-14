@@ -94,7 +94,7 @@ def save_gold_layer(gold_df, final_count, GOLD_PATH, CONFIG_PATH, logger):
 def main():
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     GOLD_PATH, CONFIG_PATH, SILVER_PATH, LOG_PATH = config_value()
-    logger = get_logger(__name__, f'{LOG_PATH}/{timestamp}_gold.log')
+    logger = get_logger(__name__, f'{LOG_PATH}/{timestamp}'+'_gold.log')
     spark = SparkSession.getActiveSession()
     try:
         silver_df = read_silver_layer(spark, SILVER_PATH, logger)
