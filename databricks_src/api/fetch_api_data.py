@@ -3,6 +3,7 @@ import json
 import os
 import yaml
 from datetime import datetime
+from databricks.sdk.runtime import *
 from databricks_src.utils.logger import get_logger
 
 # ---------------------------------------
@@ -26,7 +27,7 @@ def config_value():
 # ---------------------------------------
 # Fetch Aircraft Data
 # ---------------------------------------
-def fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url, logger):
+def fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url, logger,timestamp):
 
     logger.info("Fetching aircraft data from OpenSky API...")
 
@@ -50,7 +51,6 @@ def fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url, logger):
         raise Exception(f"Record count too low ({len(states)}). Aborting.")
 
     # Generate timestamp
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     file_name = f"aircraft_data_{timestamp}.json"
     file_path = f"{RAW_DATA_PATH}{file_name}"
 
@@ -74,8 +74,9 @@ def fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url, logger):
 # Main
 # ---------------------------------------
 def main():
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     RAW_DATA_PATH, CONFIG_PATH, LOG_PATH, url = config_value()
-    logger = get_logger(__name__, LOG_PATH)
-    fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url, logger)
+    logger = get_logger(__name__, f'{LOG_PATH}/{timestamp}'+'_brozne.log')
+    fetch_aircraft_data(RAW_DATA_PATH, CONFIG_PATH, url, logger,timestamp)
 
 main()

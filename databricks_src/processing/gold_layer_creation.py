@@ -2,45 +2,33 @@ import os
 import json
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
-import sys
-from src.utils.logger import get_logger
-from delta import configure_spark_with_delta_pip
+from databricks.sdk.runtime import *
+from databricks_src.utils.logger import get_logger
 import yaml
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.append(BASE_DIR)
+from datetime import datetime
 
-logger = get_logger(__name__, log_file="logs/gold_layer.log")
+WORKSPACE_PATH = os.environ.get("WORKSPACE_PATH")
 
-
+# ---------------------------------------
+# Load Config
+# ---------------------------------------
 def load_config():
-    with open(os.path.join(BASE_DIR, "config.yaml"), "r") as f:
+    with open(f"{WORKSPACE_PATH}/config.yaml", "r") as f:
         return yaml.safe_load(f)
 
 def config_value():
     config_val = load_config()
-    GOLD_PATH = config_val['databricks']['gold_path']
+    GOLD_PATH   = config_val['databricks']['gold_path']
     CONFIG_PATH = config_val['databricks']['config_path']
     SILVER_PATH = config_val['databricks']['delta_path']
-    return GOLD_PATH, CONFIG_PATH, SILVER_PATH
-
-# ---------------------------------------
-# Spark Session
-# ---------------------------------------
-def create_spark_session():
-    builder = (
-        SparkSession.builder
-        .appName("AircraftGoldLayer")
-        .master("local[*]")
-        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
-    )
-    return configure_spark_with_delta_pip(builder).getOrCreate()
+    LOG_PATH    = config_val['databricks']['gold_log']
+    return GOLD_PATH, CONFIG_PATH, SILVER_PATH, LOG_PATH
 
 
 # ---------------------------------------
 # Read Silver Delta
 # ---------------------------------------
-def read_silver_layer(spark,SILVER_PATH):
+def read_silver_layer(spark, SILVER_PATH, logger):
     logger.info(f"Reading Silver Delta table from: {SILVER_PATH}")
     df = spark.read.format("delta").load(SILVER_PATH)
     total = df.count()
@@ -51,12 +39,10 @@ def read_silver_layer(spark,SILVER_PATH):
 # ---------------------------------------
 # Transform for Gold
 # ---------------------------------------
-def transform_gold(silver_df):
-    # Filter EXPIRED records
+def transform_gold(silver_df, logger):
     df = silver_df.filter(col("status") != "EXPIRED")
     logger.info(f"Records after filtering EXPIRED: {df.count()}")
 
-    # Select relevant columns for analytics
     gold_df = df.select(
         col("icao24"),
         col("callsign"),
@@ -76,52 +62,47 @@ def transform_gold(silver_df):
         col("ingestion_time")
     )
 
-    # Remove duplicates keeping latest per aircraft
-    # gold_df = gold_df.dropDuplicates(["icao24"])
-    # final_count = gold_df.count()
-    # logger.info(f"Final Gold records after dedup: {final_count}")
-
+    final_count = gold_df.count()
+    logger.info(f"Final Gold records: {final_count}")
     return gold_df, final_count
 
 
 # ---------------------------------------
 # Save Gold Layer
 # ---------------------------------------
-def save_gold_layer(gold_df, final_count, GOLD_PATH, CONFIG_PATH):
+def save_gold_layer(gold_df, final_count, GOLD_PATH, CONFIG_PATH, logger):
     gold_df.write \
         .mode("overwrite") \
         .format("parquet") \
-        .partitionBy("origin_country") \
         .save(GOLD_PATH)
 
     logger.info(f"Gold layer saved at: {GOLD_PATH}")
 
     # Update run_config
-    with open(CONFIG_PATH, "r") as f:
-        config = json.load(f)
-
+    config_str = dbutils.fs.head(CONFIG_PATH)
+    config = json.loads(config_str)
     config["gold_output_path"] = GOLD_PATH
     config["gold_record_count"] = final_count
-
-    with open(CONFIG_PATH, "w") as f:
-        json.dump(config, f, indent=4)
+    dbutils.fs.put(CONFIG_PATH, json.dumps(config, indent=4), overwrite=True)
 
     logger.info("Updated run_config.json with Gold output path and record count.")
 
 
 # ---------------------------------------
-# Run workflow
+# Main
 # ---------------------------------------
-if __name__ == "__main__":
-    spark = create_spark_session()
+def main():
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    GOLD_PATH, CONFIG_PATH, SILVER_PATH, LOG_PATH = config_value()
+    logger = get_logger(__name__, f'{LOG_PATH}/{timestamp}_gold.log')
+    spark = SparkSession.getActiveSession()
     try:
-        GOLD_PATH, CONFIG_PATH, SILVER_PATH = config_value()
-        silver_df = read_silver_layer(spark, SILVER_PATH)
-        gold_df, final_count = transform_gold(silver_df)
-        save_gold_layer(gold_df, final_count, GOLD_PATH, CONFIG_PATH)
+        silver_df = read_silver_layer(spark, SILVER_PATH, logger)
+        gold_df, final_count = transform_gold(silver_df, logger)
+        save_gold_layer(gold_df, final_count, GOLD_PATH, CONFIG_PATH, logger)
         logger.info("Gold layer pipeline completed successfully.")
     except Exception as e:
         logger.error(f"Gold layer pipeline failed: {str(e)}")
         raise
-    finally:
-        spark.stop()
+
+main()
