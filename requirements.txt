@@ -1,0 +1,6 @@
+requests
+groq
+fastmcp
+pyodbc
+python-dotenv
+pyyaml
