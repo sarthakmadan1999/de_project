@@ -59,7 +59,6 @@ OpenSky Network API (Live Flight Data ~11,000 records per call)
   - EXPIRED — no contact more than 6 hours
 - Source type mapping — ADS-B, ASTERIX, MLAT, FLARM
 - Delta Lake upsert/merge on icao24
-- Partitioned by origin_country
 
 ### Gold Layer
 - Filters EXPIRED records
